@@ -6,28 +6,43 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ConsoleGameEngine;
+using Point = ConsoleGameEngine.Point;
 
 namespace Asteroids
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
+            const float targetFramerate = 45f;
             Console.BackgroundColor = ConsoleColor.Black;
             // spout is 180 x 360
             var width = 100;
             var height = 100;
+            // using bunch of separate arrays instead of structs for easier porting to JS and/or GPGPU
             var pixels = new bool[height, width];
             var newPixels = new bool[height, width];
             var velocities = new Vector2[height, width];
+            var newVelocities = new Vector2[height, width];
+            var realPositions = new Vector2[height, width];
+            var newRealPositions = new Vector2[height, width];
             var testCircleCenter = new PointInt(70, 50);
-            var testAsteroidCenter = new PointInt(20, 10);//10, 70);
+            var testAsteroidCenter = new PointInt(20, 12);
+            var testAsteroid2Center = new PointInt(15, 80);
+            // Console.SetWindowSize(width, height);
+            // Console.SetBufferSize(width, height);
+
+            var view = new StringBuilder(width * height);
+
+            var engine = new ConsoleEngine(width, height, 8, 8); // 1 or 8?
 
             // set up initial grid pixels
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
+                    realPositions[y, x] = new Vector2(x, y);
                     // test planet
                     if (IsPointInCircle(new PointInt(x, y), testCircleCenter, 20))
                     {
@@ -39,8 +54,18 @@ namespace Asteroids
                     {
                         pixels[y, x] = true;
                     }
+                    
+                    if (IsPointInCircle(new PointInt(x, y), testAsteroid2Center, 5))
+                    {
+                        pixels[y, x] = true;
+                    }
                 }
             }
+
+            // Console.BackgroundColor = ConsoleColor.Black;
+            // Console.Clear(); // to fill with black
+            Render(height, width, pixels, velocities, view, newPixels, engine);
+            engine.DisplayBuffer();
             
             // set up initial velocities
             for (int y = 0; y < height; y++)
@@ -49,29 +74,36 @@ namespace Asteroids
                 {
                     velocities[y, x] = default;
                     // test asteroid
-                    var velocityForAsteroid = new Vector2(1f, 1f);
+                    var velocityForAsteroid = new Vector2(1f, 0.4f);
                     if (IsPointInCircle(new PointInt(x, y), testAsteroidCenter, 7))
                     {
-                        // if (ShouldBePusher(x, y, pixels, velocityForPusher))
-                        // {
                         velocities[y, x] = velocityForAsteroid;
-                        // }
+                    }
+
+                    velocityForAsteroid = new Vector2(1f, -0.2f);
+                    
+                    if (IsPointInCircle(new PointInt(x, y), testAsteroid2Center, 5))
+                    {
+                        velocities[y, x] = velocityForAsteroid;
                     }
                 }
             }
 
-            var view = new StringBuilder(width * height);
-            Render(height, width, pixels, velocities, view);
+            var logicTimer = new Stopwatch();
             var frameTimer = new Stopwatch();
             var tick = 1;
-
+            Console.ReadLine();
+            
             // update
+            
             while (true)
             {
+                logicTimer.Reset();
                 frameTimer.Reset();
                 // Console.ReadLine(); // waits for enter to go to next frame
+                logicTimer.Start();
                 frameTimer.Start();
-                Clear(newPixels);
+                Clear(newPixels, newVelocities, newRealPositions);
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < width; x++)
@@ -81,9 +113,12 @@ namespace Asteroids
                             continue;
                         }
 
-                        var velocity = velocities[y, x];
+                        var velocity = new Vector2(velocities[y, x].X, velocities[y, x].Y);
+                        velocities[y, x] = new Vector2(0f, 0f);
                         
-                        var positionToMoveTo = GetPositionToMoveTo(x, y, velocity);
+                        // to support any direction of velocity, I need to store each pixel's position
+                        var positionToMoveTo = GetPositionToMoveTo(x, y, velocity, realPositions, newRealPositions);
+                        
                         if (positionToMoveTo.X < 0 || positionToMoveTo.X >= width || positionToMoveTo.Y < 0 ||
                             positionToMoveTo.Y >= height)
                         {
@@ -97,101 +132,113 @@ namespace Asteroids
                         {
                             // collision, destroy both
                             newPixels[positionToMoveTo.Y, positionToMoveTo.X] = false;
+                            newVelocities[positionToMoveTo.Y, positionToMoveTo.X] = new Vector2(0f, 0f);
                         }
                         else
                         {
                             newPixels[positionToMoveTo.Y, positionToMoveTo.X] = true;
-                            // velocities[y, x] = new Vector2(0f, 0f); // this breaks stuff
-                            velocities[positionToMoveTo.Y, positionToMoveTo.X] = velocity;
+                            newVelocities[positionToMoveTo.Y, positionToMoveTo.X] = velocity;
                         }
                     }
 
                     tick++;
                 }
-
-                pixels = newPixels.Clone() as bool[,];
-
+                
                 // render
-                Render(height, width, pixels, velocities, view);
-                frameTimer.Stop();
-                var timeToWait = TimeSpan.FromMilliseconds(33.33f) - frameTimer.Elapsed;
+                Render(height, width, newPixels, newVelocities, view, pixels, engine);
+                pixels = newPixels.Clone() as bool[,];
+                velocities = newVelocities.Clone() as Vector2[,];
+                realPositions = newRealPositions.Clone() as Vector2[,];
+                logicTimer.Stop();
+                
+                var timeToWait = TimeSpan.FromMilliseconds(1000f/targetFramerate) - logicTimer.Elapsed;
                 if (timeToWait > TimeSpan.Zero)
                 {
-                    new ManualResetEvent(false).WaitOne(timeToWait); // THIS BLOCKS THE THREAD
+                    // new ManualResetEvent(false).WaitOne(timeToWait); // THIS BLOCKS THE THREAD
+                    AccurateWait((int)timeToWait.TotalMilliseconds); // THIS BUSY-BLOCKS THE THREAD
                 }
+                
+                Console.SetCursorPosition(0, 0);
+                var elapsed = logicTimer.ElapsedMilliseconds.ToString();
+                engine.WriteText(new Point(0, 0), $"{elapsed}{new string(' ', Console.BufferWidth - elapsed.Length)}", 15); // to clear 2nd digit of prev frame
+                frameTimer.Stop();
+                elapsed = frameTimer.ElapsedMilliseconds.ToString();
+                engine.WriteText(new Point(0, 1), $"{elapsed}{new string(' ',  Console.BufferWidth - elapsed.Length)}", 15); // to clear 2nd digit of prev frame
+                engine.DisplayBuffer();
+
+                tick++;
+
+                // Console.ReadLine();
             }
 
             Console.ReadLine();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool ShouldBePusher(int x, int y, bool[,] pixels, Vector2 velocity)
+        private static PointInt GetPositionToMoveTo(int x, int y, Vector2 velocity, Vector2[,] realPositions, Vector2[,] newRealPositions)
         {
-            return PixelExists(GetNeighborPosition(x, y, velocity), pixels) && ! PixelExists(GetNeighborPosition(x, y, -velocity), pixels);
-        }
+            var direction = velocity.Normalize(); // for now treating velocity as if it has magnitude 1
+            var newRealPosition = realPositions[y, x] + direction;
+            var newPosition = new PointInt((int)Math.Round(newRealPosition.X), (int)Math.Round(newRealPosition.Y));
+            
+            if (newPosition.Y < newRealPositions.GetLength(0) && 
+                newPosition.X < newRealPositions.GetLength(1) &&
+                newPosition.Y >= 0 && newPosition.X >= 0) // if out of bounds it will be detected and destroyed later
+            {
+                newRealPositions[newPosition.Y, newPosition.X] = newRealPosition;
+            }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static PointInt GetPositionToMoveTo(int x, int y, Vector2 velocity)
-        {
-            return new PointInt(x, y) + GetOffsetFromVelocity(velocity);
+            return newPosition;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool PixelExists(PointInt position, bool[,] pixels) => pixels[position.Y, position.X];
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static PointInt GetNeighborPosition(int x, int y, Vector2 velocity)
+        private static void Render(int height, int width, bool[,] pixels, Vector2[,] velocities, StringBuilder view, bool[,] prevPixels, ConsoleEngine engine)
         {
-            var offset = GetOffsetFromVelocity(velocity);
-            offset = new PointInt(
-                offset.X == 0 ? 0 : offset.X / Math.Abs(offset.X),
-                offset.Y == 0 ? 0 : offset.Y / Math.Abs(offset.Y));
-            return new PointInt(x, y) + offset;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static PointInt GetOffsetFromVelocity(Vector2 velocity)
-        {
-            return new PointInt((int)Math.Round(velocity.X), (int)Math.Round(velocity.Y));
-        }
-
-        private static void Render(int height, int width, bool[,] pixels, Vector2[,] velocities, StringBuilder view)
-        {
-            Console.Clear();
-            view.Clear();
+            // Console.Clear();
+            // view.Clear();
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    var velocity = velocities[y, x];
-                    if (pixels[y, x])
+                    if (pixels[y, x] == prevPixels[y, x])
                     {
-                        var character = velocity switch
-                        {
-                            // _ => '█',
-                            (>0f, >0f) => '↘',
-                            (>0f, 0f) => '→',
-                            (>0f, <0f) => '↗',
-                            (0f, <0f) => '↑',
-                            (0f, 0f) => '█',
-                            (0f, >0f) => '↓',
-                            (<0f, <0f) => '↖',
-                            (<0f, 0f) => '←',
-                            (<0f, >0f) => '↙',
-                        };
-                        view.Append(character);
+                        continue;
                     }
-                    else
-                    {
-                        view.Append(" ");
-                    }
+                    var character = pixels[y, x] ? '█' : ' ';
+                    engine.SetPixel(new Point(x, y), 15, character); // 0 is black, 15 is white
+                    // var velocity = velocities[y, x];
+                    // if (pixels[y, x])
+                    // {
+                    //     var character = velocity switch // console font doesn't support some of those characters unfortunately
+                    //     {
+                    //         // _ => '█',
+                    //         (>0f, >0f) => '↘',
+                    //         (>0f, 0f) => '→',
+                    //         (>0f, <0f) => '↗',
+                    //         (0f, <0f) => '↑',
+                    //         (0f, 0f) => '█',
+                    //         (0f, >0f) => '↓',
+                    //         (<0f, <0f) => '↖',
+                    //         (<0f, 0f) => '←',
+                    //         (<0f, >0f) => '↙',
+                    //     };
+                    //     // if (!pixels[y, x] && character == '█') // hack to visualize velocity for empty pixels
+                    //     // {
+                    //     //     character = ' ';
+                    //     // }
+                    //
+                    //     character = '█';
+                    //     view.Append(character);
+                    // }
+                    // else
+                    // {
+                    //     view.Append(' ');
+                    // }
+
                 }
-
-                view.AppendLine();
             }
-
-            Console.WriteLine(view);
-            // Console.WriteLine("test");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -201,17 +248,30 @@ namespace Asteroids
             return distance <= radius + 0.5f;
         }
 
-        private static void Clear(bool[,] array)
+        private static void Clear(bool[,] array, Vector2[,] array2, Vector2[,] array3)
         {
             for (int y = 0; y < array.GetLength(0); y++)
             {
                 for (int x = 0; x < array.GetLength(1); x++)
                 {
                     array[y, x] = false;
+                    array2[y, x] = Vector2.Zero;
+                    array3[y, x] = Vector2.Zero;
                 }
             }
         }
+        
+        private static void AccurateWait(int ms)
+        {
+            var sw = Stopwatch.StartNew();
+
+            while (sw.ElapsedMilliseconds < ms)
+                ;
+        }
+        
+
     }
+
 
     [DebuggerDisplay("({X},{Y})")]
     struct PointInt

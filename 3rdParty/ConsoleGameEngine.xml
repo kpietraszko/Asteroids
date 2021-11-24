@@ -1,0 +1,409 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ConsoleGameEngine</name>
+    </assembly>
+    <members>
+        <member name="T:ConsoleGameEngine.Color">
+            <summary> Represents an RGB color. </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.Color.R">
+            <summary> Red component. </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.Color.G">
+            <summary> Green component. </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.Color.B">
+            <summary> Bkue component. </summary>
+        </member>
+        <member name="M:ConsoleGameEngine.Color.#ctor(System.Int32,System.Int32,System.Int32)">
+            <summary> Creates a new Color from rgb. </summary>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleBuffer.SetBuffer(ConsoleGameEngine.Glyph[0:,0:],System.Int32)">
+            <summary>
+            Sets the buffer to values
+            </summary>
+            <param name="GlyphBuffer"></param>
+            <param name="charBuffer"> array of chars which get added to the buffer</param>
+            <param name="colorBuffer"> array of foreground(front)colors which get added to the buffer</param>
+            <param name="background"> array of background colors which get added to the buffer</param>
+            <param name="defualtBackground"> default color(may reduce fps?), this is the background color
+            								null chars will get set to this default background</param>
+        </member>
+        <member name="T:ConsoleGameEngine.ConsoleEngine">
+            <summary>
+            Class for Drawing to a console window.
+            </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.ConsoleEngine.Palette">
+            <summary> The active color palette. </summary> <see cref="T:ConsoleGameEngine.Color"/>
+        </member>
+        <member name="P:ConsoleGameEngine.ConsoleEngine.FontSize">
+            <summary> The current size of the font. </summary> <see cref="T:ConsoleGameEngine.Point"/>
+        </member>
+        <member name="P:ConsoleGameEngine.ConsoleEngine.WindowSize">
+            <summary> The dimensions of the window in characters. </summary> <see cref="T:ConsoleGameEngine.Point"/>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.#ctor(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary> Creates a new ConsoleEngine. </summary>
+            <param name="width">Target window width.</param>
+            <param name="height">Target window height.</param>
+            <param name="fontW">Target font width.</param>
+            <param name="fontH">Target font height.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.PixelAt(ConsoleGameEngine.Point)">
+            <summary>
+            returns gylfh at point given
+            </summary>
+            <param name="selectedPoint"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.SetPalette(ConsoleGameEngine.Color[])">
+            <summary> Sets the console's color palette </summary>
+            <param name="colors"></param>
+            <exception cref="T:System.ArgumentException"/> <exception cref="T:System.ArgumentNullException"/>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.SetBackground(System.Int32)">
+            <summary> Sets the console's background color to one in the active palette. </summary>
+            <param name="color">Index of background color in palette.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.GetBackground">
+            <summary>Gets Background</summary>
+            <returns>Returns the background</returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.ClearBuffer">
+            <summary> Clears the screenbuffer. </summary>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.DisplayBuffer">
+            <summary> Blits the screenbuffer to the Console window. </summary>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Borderless">
+            <summary> Sets the window to borderless mode. </summary>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.SetPixel(ConsoleGameEngine.Point,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a single pixel to the screenbuffer. calls new method with Background as the bgColor </summary>
+            <param name="v">The Point that should be drawn to.</param>
+            <param name="color">The color index.</param>
+            <param name="c">The character that should be drawn with.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.SetPixel(ConsoleGameEngine.Point,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Overloaded Method Draws a single pixel to the screenbuffer with custom bgColor. </summary>
+            <param name="v">The Point that should be drawn to.</param>
+            <param name="fgColor">The foreground color index.</param>
+            <param name="bgColor">The background color index.</param>
+            <param name="c">The character that should be drawn with.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Frame(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32)">
+            <summary> Draws a frame using boxdrawing symbols, calls new method with Background as the bgColor. </summary>
+            <param name="pos">Top Left corner of box.</param>
+            <param name="end">Bottom Right corner of box.</param>
+            <param name="color">The specified color index.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Frame(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,System.Int32)">
+            <summary> Draws a frame using boxdrawing symbols. </summary>
+            <param name="pos">Top Left corner of box.</param>
+            <param name="end">Bottom Right corner of box.</param>
+            <param name="fgColor">The specified color index.</param>
+            <param name="bgColor">The specified background color index.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.WriteText(ConsoleGameEngine.Point,System.String,System.Int32)">
+            <summary> Writes plain text to the buffer, calls new method with Background as the bgColor. </summary>
+            <param name="pos">The position to write to.</param>
+            <param name="text">String to write.</param>
+            <param name="color">Specified color index to write with.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.WriteText(ConsoleGameEngine.Point,System.String,System.Int32,System.Int32)">
+            <summary> Writes plain text to the buffer. </summary>
+            <param name="pos">The position to write to.</param>
+            <param name="text">String to write.</param>
+            <param name="fgColor">Specified color index to write with.</param>
+            <param name="bgColor">Specified background color index to write with.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.WriteFiglet(ConsoleGameEngine.Point,System.String,ConsoleGameEngine.FigletFont,System.Int32)">
+            <summary>  Writes text to the buffer in a FIGlet font, calls new method with Background as the bgColor. </summary>
+            <param name="pos">The Top left corner of the text.</param>
+            <param name="text">String to write.</param>
+            <param name="font">FIGLET font to write with.</param>
+            <param name="color">Specified color index to write with.</param>
+            <see cref="T:ConsoleGameEngine.FigletFont"/>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.WriteFiglet(ConsoleGameEngine.Point,System.String,ConsoleGameEngine.FigletFont,System.Int32,System.Int32)">
+            <summary>  Writes text to the buffer in a FIGlet font. </summary>
+            <param name="pos">The Top left corner of the text.</param>
+            <param name="text">String to write.</param>
+            <param name="font">FIGLET font to write with.</param>
+            <param name="fgColor">Specified color index to write with.</param>
+            <param name="bgColor">Specified background color index to write with.</param>
+            <see cref="T:ConsoleGameEngine.FigletFont"/>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Arc(ConsoleGameEngine.Point,System.Int32,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws an Arc, calls new method with Background as the bgColor. </summary>
+            <param name="pos">Center of Arc.</param>
+            <param name="radius">Radius of Arc.</param>
+            <param name="color">Specified color index.</param>
+            <param name="arc">angle in degrees, 360 if not specified.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Arc(ConsoleGameEngine.Point,System.Int32,System.Int32,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws an Arc. </summary>
+            <param name="pos">Center of Arc.</param>
+            <param name="radius">Radius of Arc.</param>
+            <param name="fgColor">Specified color index.</param>
+            <param name="bgColor">Specified background color index.</param>
+            <param name="arc">angle in degrees, 360 if not specified.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.SemiCircle(ConsoleGameEngine.Point,System.Int32,System.Int32,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a filled Arc, calls new method with Background as the bgColor </summary>
+            <param name="pos">Center of Arc.</param>
+            <param name="radius">Radius of Arc.</param>
+            <param name="start">Start angle in degrees.</param>
+            <param name="arc">End angle in degrees.</param>
+            <param name="color">Specified color index.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.SemiCircle(ConsoleGameEngine.Point,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a filled Arc. </summary>
+            <param name="pos">Center of Arc.</param>
+            <param name="radius">Radius of Arc.</param>
+            <param name="start">Start angle in degrees.</param>
+            <param name="arc">End angle in degrees.</param>
+            <param name="fgColor">Specified color index.</param>
+            <param name="bgColor">Specified background color index.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Line(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a line from start to end. (Bresenhams Line), calls overloaded method with background as bgColor </summary>
+            <param name="start">Point to draw line from.</param>
+            <param name="end">Point to end line at.</param>
+            <param name="color">Color to draw with.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Line(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a line from start to end. (Bresenhams Line) </summary>
+            <param name="start">Point to draw line from.</param>
+            <param name="end">Point to end line at.</param>
+            <param name="fgColor">Color to draw with.</param>
+            <param name="bgColor">Color to draw the background with.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Rectangle(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a Rectangle, calls overloaded method with background as bgColor  </summary>
+            <param name="pos">Top Left corner of rectangle.</param>
+            <param name="end">Bottom Right corner of rectangle.</param>
+            <param name="color">Color to draw with.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Rectangle(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a Rectangle. </summary>
+            <param name="pos">Top Left corner of rectangle.</param>
+            <param name="end">Bottom Right corner of rectangle.</param>
+            <param name="fgColor">Color to draw with.</param>
+            <param name="bgColor">Color to draw to the background with.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Fill(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a Rectangle and fills it, calls overloaded method with background as bgColor </summary>
+            <param name="a">Top Left corner of rectangle.</param>
+            <param name="b">Bottom Right corner of rectangle.</param>
+            <param name="color">Color to draw with.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Fill(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a Rectangle and fills it. </summary>
+            <param name="a">Top Left corner of rectangle.</param>
+            <param name="b">Bottom Right corner of rectangle.</param>
+            <param name="fgColor">Color to draw with.</param>
+            <param name="bgColor">Color to draw the background with.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Grid(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a grid, calls overloaded method with background as bgColor </summary>
+            <param name="a">Top Left corner of grid.</param>
+            <param name="b">Bottom Right corner of grid.</param>
+            <param name="spacing">the spacing until next line</param>
+            <param name="color">Color to draw with.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Grid(ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a grid. </summary>
+            <param name="a">Top Left corner of grid.</param>
+            <param name="b">Bottom Right corner of grid.</param>
+            <param name="spacing">the spacing until next line</param>
+            <param name="fgColor">Color to draw with.</param>
+            <param name="bgColor">Color to draw the background with.</param>
+            <param name="c">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Triangle(ConsoleGameEngine.Point,ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a Triangle, calls overloaded method with background as bgColor </summary>
+            <param name="a">Point A.</param>
+            <param name="b">Point B.</param>
+            <param name="c">Point C.</param>
+            <param name="color">Color to draw with.</param>
+            <param name="character">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.Triangle(ConsoleGameEngine.Point,ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a Triangle. </summary>
+            <param name="a">Point A.</param>
+            <param name="b">Point B.</param>
+            <param name="c">Point C.</param>
+            <param name="fgColor">Color to draw with.</param>
+            <param name="bgColor">Color to draw to the background with.</param>
+            <param name="character">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.FillTriangle(ConsoleGameEngine.Point,ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a Triangle and fills it, calls overloaded method with background as bgColor </summary>
+            <param name="a">Point A.</param>
+            <param name="b">Point B.</param>
+            <param name="c">Point C.</param>
+            <param name="color">Color to draw with.</param>
+            <param name="character">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.FillTriangle(ConsoleGameEngine.Point,ConsoleGameEngine.Point,ConsoleGameEngine.Point,System.Int32,System.Int32,ConsoleGameEngine.ConsoleCharacter)">
+            <summary> Draws a Triangle and fills it. </summary>
+            <param name="a">Point A.</param>
+            <param name="b">Point B.</param>
+            <param name="c">Point C.</param>
+            <param name="fgColor">Color to draw with.</param>
+            <param name="bgColor">Color to draw to the background with.</param>
+            <param name="character">Character to use.</param>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.ConsoleFocused">
+            <summary>Checks to see if the console is in focus </summary>
+            <returns>True if Console is in focus</returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.GetKey(System.ConsoleKey)">
+            <summary> Checks if specified key is pressed. </summary>
+            <param name="key">The key to check.</param>
+            <returns>True if key is pressed</returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.GetKey(System.Int32)">
+            <summary> Checks if specified keyCode is pressed. </summary>
+            <param name="virtualkeyCode">keycode to check</param>
+            <returns>True if key is pressed</returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.GetKeyDown(System.ConsoleKey)">
+            <summary> Checks if specified key is pressed down. </summary>
+            <param name="key">The key to check.</param>
+            <returns>True if key is down</returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.GetKeyDown(System.Int32)">
+            <summary> Checks if specified keyCode is pressed down. </summary>
+            <param name="virtualkeyCode">keycode to check</param>
+            <returns>True if key is down</returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.GetMouseLeft">
+            <summary> Checks if left mouse button is pressed down. </summary>
+            <returns>True if left mouse button is down</returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.GetMouseRight">
+            <summary> Checks if right mouse button is pressed down. </summary>
+            <returns>True if right mouse button is down</returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.GetMouseMiddle">
+            <summary> Checks if middle mouse button is pressed down. </summary>
+            <returns>True if middle mouse button is down</returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.GetMousePos">
+            <summary> Gets the mouse position. </summary>
+            <returns>The mouse's position in character-space.</returns>
+            <exception cref="T:System.Exception"/>
+        </member>
+        <member name="T:ConsoleGameEngine.ConsoleCharacter">
+            <summary> Enum for basic Unicodes. </summary>
+        </member>
+        <member name="T:ConsoleGameEngine.FramerateMode">
+            <summary> Enum for Different Gameloop modes. </summary>
+        </member>
+        <member name="F:ConsoleGameEngine.FramerateMode.MaxFps">
+            <summary>Run at max speed, but no higher than TargetFramerate.</summary>
+        </member>
+        <member name="F:ConsoleGameEngine.FramerateMode.Unlimited">
+            <summary>Run at max speed.</summary>
+        </member>
+        <member name="T:ConsoleGameEngine.Palettes">
+            <summary> Represents prebuilt palettes. </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.Palettes.Pico8">
+            <summary> Pico8 palette. </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.Palettes.Default">
+            <summary> default windows console palette. </summary>
+        </member>
+        <member name="F:ConsoleGameEngine.Palettes.NULL">
+            <summary> Color constants for ease of use ex: Palettes.BlUE</summary>
+        </member>
+        <member name="M:ConsoleGameEngine.Palettes.ColorName(System.Int32)">
+            <summary>toString function, which returns the string name of the color</summary>
+            <param name="colorPosition">position in array</param>
+            <returns>the name of the color in the palette array</returns>
+        </member>
+        <member name="T:ConsoleGameEngine.ConsoleGame">
+            <summary>
+            Abstract class to aid in Gamemaking.
+            Implements an instance of the ConsoleEngine and has Looping methods.
+            </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.ConsoleGame.Engine">
+            <summary> Instance of a ConsoleEngine. </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.ConsoleGame.FrameCounter">
+            <summary> A counter representing the current unique frame we're at. </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.ConsoleGame.FrameTotal">
+            <summary> A counter representing the total frames since launch</summary>
+        </member>
+        <member name="P:ConsoleGameEngine.ConsoleGame.DeltaTime">
+            <summary> Factor for generating framerate-independent physics. time between last frame and current. </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.ConsoleGame.StartTime">
+            <summary>The time the program started in DateTime, set after Create()</summary>
+        </member>
+        <member name="P:ConsoleGameEngine.ConsoleGame.TargetFramerate">
+            <summary> The framerate the engine is trying to run at. </summary>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleGame.Construct(System.Int32,System.Int32,System.Int32,System.Int32,ConsoleGameEngine.FramerateMode)">
+            <summary> Initializes the ConsoleGame. Creates the instance of a ConsoleEngine and starts the game loop. </summary>
+            <param name="width">Width of the window.</param>
+            <param name="height">Height of the window.</param>
+            <param name="fontW">Width of the font.</param>
+            <param name="fontH">´Height of the font.</param>
+            <param name="m">Framerate mode to run at.</param>
+            <see cref="T:ConsoleGameEngine.FramerateMode"/> <see cref="T:ConsoleGameEngine.ConsoleEngine"/>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleGame.GetFramerate">
+            <summary> Gets the current framerate the application is running at. </summary>
+            <returns> Application Framerate. </returns>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleGame.Create">
+            <summary> Run once on Creating, import Resources here. </summary>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleGame.Update">
+            <summary> Run every frame before rendering. Do math here. </summary>
+        </member>
+        <member name="M:ConsoleGameEngine.ConsoleGame.Render">
+            <summary> Run every frame after updating. Do drawing here. </summary>
+        </member>
+        <member name="T:ConsoleGameEngine.FigletFont">
+            <summary> A FIGlet font. </summary>
+        </member>
+        <member name="T:ConsoleGameEngine.Point">
+            <summary> A Vector containing two ints. </summary>
+        </member>
+        <member name="P:ConsoleGameEngine.Point.Zero">
+            <summary> new Point(0, 0); </summary>
+        </member>
+        <member name="M:ConsoleGameEngine.Point.Distance(ConsoleGameEngine.Point,ConsoleGameEngine.Point)">
+            <summary> Calculates distance between two points. </summary>
+            <param name="a">Point A</param>
+            <param name="b">Point B</param>
+            <returns>Distance between A and B</returns>
+        </member>
+        <member name="T:ConsoleGameEngine.Utility">
+            <summary> Utility class. </summary>
+        </member>
+        <member name="T:ConsoleGameEngine.Vector">
+            <summary> Vector of two floats. </summary>
+        </member>
+    </members>
+</doc>

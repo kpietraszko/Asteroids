@@ -9,4 +9,10 @@
       <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="ConsoleGameEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>..\3rdParty\ConsoleGameEngine.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>
