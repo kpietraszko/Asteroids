@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
@@ -15,11 +16,11 @@ namespace Asteroids
     {
         static void Main(string[] args)
         {
-            const float targetFramerate = 45f;
+            const float targetFramerate = 60f;
             Console.BackgroundColor = ConsoleColor.Black;
             // spout is 180 x 360
-            var width = 100;
-            var height = 100;
+            var width = 320;
+            var height = 200;
             // using bunch of separate arrays instead of structs for easier porting to JS and/or GPGPU
             var pixels = new bool[height, width];
             var newPixels = new bool[height, width];
@@ -27,15 +28,21 @@ namespace Asteroids
             var newVelocities = new Vector2[height, width];
             var realPositions = new Vector2[height, width];
             var newRealPositions = new Vector2[height, width];
-            var testCircleCenter = new PointInt(70, 50);
-            var testAsteroidCenter = new PointInt(20, 12);
-            var testAsteroid2Center = new PointInt(15, 80);
+            var testCircleCenter = new PointInt(70*2, 50*2);
+
+            var asteroids = new List<Asteroid>()
+            {
+                new Asteroid(new PointInt(20 * 2, 12 * 2), 7 * 2),
+                new Asteroid(new PointInt(15 * 2, 80 * 2), 5 * 2),
+                new Asteroid(new PointInt(20 * 2, 46 * 2), 10 * 2)
+            };
+            
             // Console.SetWindowSize(width, height);
             // Console.SetBufferSize(width, height);
 
             var view = new StringBuilder(width * height);
 
-            var engine = new ConsoleEngine(width, height, 8, 8); // 1 or 8?
+            var engine = new ConsoleEngine(width, height, 5, 5); // 1 or 8?
 
             // set up initial grid pixels
             for (int y = 0; y < height; y++)
@@ -44,20 +51,17 @@ namespace Asteroids
                 {
                     realPositions[y, x] = new Vector2(x, y);
                     // test planet
-                    if (IsPointInCircle(new PointInt(x, y), testCircleCenter, 20))
-                    {
-                        pixels[y, x] = true;
-                    }
-
-                    // test asteroid
-                    if (IsPointInCircle(new PointInt(x, y), testAsteroidCenter, 7))
+                    if (IsPointInCircle(new PointInt(x, y), testCircleCenter, 20*2))
                     {
                         pixels[y, x] = true;
                     }
                     
-                    if (IsPointInCircle(new PointInt(x, y), testAsteroid2Center, 5))
+                    foreach (var asteroid in asteroids)
                     {
-                        pixels[y, x] = true;
+                        if (IsPointInCircle(new PointInt(x, y), asteroid.Center, asteroid.Radius))
+                        {
+                            pixels[y, x] = true;
+                        }
                     }
                 }
             }
@@ -73,18 +77,15 @@ namespace Asteroids
                 for (int x = 0; x < width; x++)
                 {
                     velocities[y, x] = default;
-                    // test asteroid
-                    var velocityForAsteroid = new Vector2(1f, 0.4f);
-                    if (IsPointInCircle(new PointInt(x, y), testAsteroidCenter, 7))
-                    {
-                        velocities[y, x] = velocityForAsteroid;
-                    }
 
-                    velocityForAsteroid = new Vector2(1f, -0.2f);
-                    
-                    if (IsPointInCircle(new PointInt(x, y), testAsteroid2Center, 5))
+                    var velocitiesPerAsteroid = new Vector2[] { new Vector2(1f, 0.4f), new Vector2(1f, -0.2f), new Vector2(1f, 0f) };
+                    // test asteroid
+                    for (int i = 0; i < asteroids.Count; i++)
                     {
-                        velocities[y, x] = velocityForAsteroid;
+                        if (IsPointInCircle(new PointInt(x, y), asteroids[i].Center, asteroids[i].Radius))
+                        {
+                            velocities[y, x] = velocitiesPerAsteroid[i];
+                        }
                     }
                 }
             }
@@ -95,7 +96,6 @@ namespace Asteroids
             Console.ReadLine();
             
             // update
-            
             while (true)
             {
                 logicTimer.Reset();
@@ -158,7 +158,6 @@ namespace Asteroids
                     AccurateWait((int)timeToWait.TotalMilliseconds); // THIS BUSY-BLOCKS THE THREAD
                 }
                 
-                Console.SetCursorPosition(0, 0);
                 var elapsed = logicTimer.ElapsedMilliseconds.ToString();
                 engine.WriteText(new Point(0, 0), $"{elapsed}{new string(' ', Console.BufferWidth - elapsed.Length)}", 15); // to clear 2nd digit of prev frame
                 frameTimer.Stop();
@@ -206,8 +205,11 @@ namespace Asteroids
                     {
                         continue;
                     }
-                    var character = pixels[y, x] ? '█' : ' ';
-                    engine.SetPixel(new Point(x, y), 15, character); // 0 is black, 15 is white
+
+                    // var character = pixels[y, x] ? ConsoleCharacter.Full : ConsoleCharacter.Null; //'█' : ' ';
+                    var color = pixels[y, x] ? 15 : 0;
+                    // engine.SetPixel(new Point(x, y), 15, character); // 0 is black, 15 is white
+                    engine.SetPixel(new Point(x, y), 0, color, ' ');
                     // var velocity = velocities[y, x];
                     // if (pixels[y, x])
                     // {
@@ -310,6 +312,18 @@ namespace Asteroids
         public float Magnitude()
         {
             return (float)Math.Sqrt(Math.Pow(X, 2) + Math.Pow(Y, 2));
+        }
+    }
+
+    struct Asteroid
+    { 
+        public PointInt Center;
+        public int Radius;
+
+        public Asteroid(PointInt center, int radius)
+        {
+            Center = center;
+            Radius = radius;
         }
     }
 }

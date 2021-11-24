@@ -51,6 +51,11 @@
             <param name="fontW">Target font width.</param>
             <param name="fontH">Target font height.</param>
         </member>
+        <member name="M:ConsoleGameEngine.ConsoleEngine.#ctor(System.Int32,System.Int32,ConsoleGameEngine.Point)">
+            <summary> Creates a new ConsoleEngine. </summary>
+            <param name="width">Target window width.</param>
+            <param name="height">Target window height.</param>
+        </member>
         <member name="M:ConsoleGameEngine.ConsoleEngine.PixelAt(ConsoleGameEngine.Point)">
             <summary>
             returns gylfh at point given
