@@ -19,5 +19,7 @@ namespace Asteroids
             
             return vector / vector.Length();
         }
+
+        public static Vector2 Clone(this Vector2 vector) => new Vector2(vector.X, vector.Y);
     }
 }

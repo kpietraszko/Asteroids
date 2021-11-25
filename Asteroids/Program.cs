@@ -16,7 +16,7 @@ namespace Asteroids
     {
         static void Main(string[] args)
         {
-            const float targetFramerate = 60f;
+            const float targetFramerate = 30f;
             Console.BackgroundColor = ConsoleColor.Black;
             // spout is 180 x 360
             var width = 320;
@@ -28,13 +28,21 @@ namespace Asteroids
             var newVelocities = new Vector2[height, width];
             var realPositions = new Vector2[height, width];
             var newRealPositions = new Vector2[height, width];
-            var testCircleCenter = new PointInt(70*2, 50*2);
+            var rotationGroupAssignements = new int[height, width];
+            var newRotationGroupAssignements = new int[height, width];
+            var testPlanetCenter = new PointInt(70*2, 50*2);
 
             var asteroids = new List<Asteroid>()
             {
-                new Asteroid(new PointInt(20 * 2, 12 * 2), 7 * 2),
-                new Asteroid(new PointInt(15 * 2, 80 * 2), 5 * 2),
-                new Asteroid(new PointInt(20 * 2, 46 * 2), 10 * 2)
+                /*new (new PointInt(20 * 2, 12 * 2), 7 * 2),
+                new (new PointInt(15 * 2, 80 * 2), 5 * 2),
+                new (new PointInt(20 * 2, 46 * 2), 10 * 2)*/
+            };
+
+            var rotationGroups = new List<RotationGroup>()
+            {
+                default, // index 0 is default which shouldn't rotate
+                new(new Vector2(testPlanetCenter.X, testPlanetCenter.Y), 0.05f) // for planet
             };
             
             // Console.SetWindowSize(width, height);
@@ -51,9 +59,12 @@ namespace Asteroids
                 {
                     realPositions[y, x] = new Vector2(x, y);
                     // test planet
-                    if (IsPointInCircle(new PointInt(x, y), testCircleCenter, 20*2))
+                    var radius = 20 * 2;
+                    if (IsPointInCircle(new PointInt(x, y), testPlanetCenter, radius) ||
+                        (x < testPlanetCenter.X + 3 && x > testPlanetCenter.X - 3 && y > testPlanetCenter.Y - radius - 6 && y < testPlanetCenter.Y))
                     {
                         pixels[y, x] = true;
+                        rotationGroupAssignements[y, x] = 1;
                     }
                     
                     foreach (var asteroid in asteroids)
@@ -78,7 +89,7 @@ namespace Asteroids
                 {
                     velocities[y, x] = default;
 
-                    var velocitiesPerAsteroid = new Vector2[] { new Vector2(1f, 0.4f), new Vector2(1f, -0.2f), new Vector2(1f, 0f) };
+                    var velocitiesPerAsteroid = new Vector2[] { new (1f, 0.4f), new (1f, -0.2f), new (1f, 0f) };
                     // test asteroid
                     for (int i = 0; i < asteroids.Count; i++)
                     {
@@ -94,16 +105,16 @@ namespace Asteroids
             var frameTimer = new Stopwatch();
             var tick = 1;
             Console.ReadLine();
-            
+
+            var averageTimer = Stopwatch.StartNew();
             // update
             while (true)
             {
-                logicTimer.Reset();
                 frameTimer.Reset();
                 // Console.ReadLine(); // waits for enter to go to next frame
-                logicTimer.Start();
                 frameTimer.Start();
-                Clear(newPixels, newVelocities, newRealPositions);
+                Clear(newPixels, newVelocities, newRealPositions, newRotationGroupAssignements);
+                var pixelsThatNoPixelRotatesTo = 0;
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < width; x++)
@@ -112,33 +123,78 @@ namespace Asteroids
                         {
                             continue;
                         }
+                        
+                        // rotation tips: https://stackoverflow.com/questions/4764516/help-with-rotating-xy-pixel-coordinates-unsure-about-my-function
+                        // find the pixel that rotates to this pixel, by iterating over all rotationGroups, and rotating in minus angle
+                        // unfortunately this loop needs to be moved before this velocity loop, because  
+                        var foundPixelThatRotatesToThisPixel = false;
+                        for (int rotationGroupIdx = 1; rotationGroupIdx < rotationGroups.Count; rotationGroupIdx++)
+                        {
+                            var rotationGroup = rotationGroups[rotationGroupIdx];
+                            if (realPositions[y, x] != rotationGroup.Pivot)
+                            {
+                                var posRelativeToPivot =  realPositions[y, x] - rotationGroup.Pivot;
+                                var r = posRelativeToPivot.Length();
+                                var angle = Math.Atan2(posRelativeToPivot.Y, posRelativeToPivot.X);
+                                angle += -rotationGroup.AngularVelocity; // rotate in minus angle because I'm looking for pixel that rotates to current pixel
+                                // Transform back from polar coordinates to cartesian 
+                                var rotatedPosRelativeToPivot = new Vector2(r * (float)Math.Cos(angle), r * (float)Math.Sin(angle));
+                                var rotatedRealPosition = rotatedPosRelativeToPivot + rotationGroup.Pivot;
+                                var pixelThatRotatesToCurrent = new PointInt((int)Math.Round(rotatedRealPosition.X), (int)Math.Round(rotatedRealPosition.Y));
+                                
+                                if (pixelThatRotatesToCurrent.Y >= newRealPositions.GetLength(0) || 
+                                    pixelThatRotatesToCurrent.X >= newRealPositions.GetLength(1) ||
+                                    pixelThatRotatesToCurrent.Y < 0 || pixelThatRotatesToCurrent.X < 0) // can't be it because out of bounds
+                                {
+                                    continue;
+                                }
 
+                                if (rotationGroups[rotationGroupAssignements[pixelThatRotatesToCurrent.Y, pixelThatRotatesToCurrent.X]] == rotationGroup)
+                                {
+                                    // pixel that rotates to current pixel is in this rotation group
+                                    realPositions[y, x] = realPositions[pixelThatRotatesToCurrent.Y, pixelThatRotatesToCurrent.X];
+                                    velocities[y, x] = velocities[pixelThatRotatesToCurrent.Y, pixelThatRotatesToCurrent.X];
+                                    // throw new Exception();
+                                    foundPixelThatRotatesToThisPixel = true;
+                                }
+                            }
+                        }
+
+                        if (!foundPixelThatRotatesToThisPixel)
+                            pixelsThatNoPixelRotatesTo++;
+                        
+                        
                         var velocity = new Vector2(velocities[y, x].X, velocities[y, x].Y);
                         velocities[y, x] = new Vector2(0f, 0f);
+
+                        var rotationGroupIndex = rotationGroupAssignements[y, x];
+                        var positionToMoveTo = ApplyVelocity(realPositions[y, x], velocity, newRealPositions, rotationGroups[rotationGroupIndex]);
+
+                        // if (OutsideOfGrid(positionToMoveTo, width, height))
+                        // {
+                        //     // destroys pixels that left the grid
+                        //     newPixels[y, x] = false;
+                        //     continue;
+                        // }
                         
-                        // to support any direction of velocity, I need to store each pixel's position
-                        var positionToMoveTo = GetPositionToMoveTo(x, y, velocity, realPositions, newRealPositions);
-                        
-                        if (positionToMoveTo.X < 0 || positionToMoveTo.X >= width || positionToMoveTo.Y < 0 ||
-                            positionToMoveTo.Y >= height)
+                        if (newPixels[positionToMoveTo.Y, positionToMoveTo.X] &&
+                            rotationGroupAssignements[positionToMoveTo.Y, positionToMoveTo.X] == rotationGroupIndex)
                         {
-                            // destroys pixels that left the grid
-                            newPixels[y, x] = false;
-                            continue;
+                            // target pixel already occupied by same rotation group pixel
+                            positionToMoveTo = new PointInt(x, y);
                         }
-                        
-                        // write new position to a newPixels array, if already occupied, destroy on target position
-                        if (newPixels[positionToMoveTo.Y, positionToMoveTo.X]) // probably wrong
+
+                        /*if (newPixels[positionToMoveTo.Y, positionToMoveTo.X]) 
                         {
                             // collision, destroy both
                             newPixels[positionToMoveTo.Y, positionToMoveTo.X] = false;
                             newVelocities[positionToMoveTo.Y, positionToMoveTo.X] = new Vector2(0f, 0f);
                         }
                         else
-                        {
+                        {*/
                             newPixels[positionToMoveTo.Y, positionToMoveTo.X] = true;
                             newVelocities[positionToMoveTo.Y, positionToMoveTo.X] = velocity;
-                        }
+                        // }
                     }
 
                     tick++;
@@ -149,22 +205,24 @@ namespace Asteroids
                 pixels = newPixels.Clone() as bool[,];
                 velocities = newVelocities.Clone() as Vector2[,];
                 realPositions = newRealPositions.Clone() as Vector2[,];
-                logicTimer.Stop();
-                
-                var timeToWait = TimeSpan.FromMilliseconds(1000f/targetFramerate) - logicTimer.Elapsed;
-                if (timeToWait > TimeSpan.Zero)
-                {
-                    // new ManualResetEvent(false).WaitOne(timeToWait); // THIS BLOCKS THE THREAD
-                    AccurateWait((int)timeToWait.TotalMilliseconds); // THIS BUSY-BLOCKS THE THREAD
-                }
-                
-                var elapsed = logicTimer.ElapsedMilliseconds.ToString();
-                engine.WriteText(new Point(0, 0), $"{elapsed}{new string(' ', Console.BufferWidth - elapsed.Length)}", 15); // to clear 2nd digit of prev frame
-                frameTimer.Stop();
-                elapsed = frameTimer.ElapsedMilliseconds.ToString();
-                engine.WriteText(new Point(0, 1), $"{elapsed}{new string(' ',  Console.BufferWidth - elapsed.Length)}", 15); // to clear 2nd digit of prev frame
-                engine.DisplayBuffer();
 
+                var timeToWait = TimeSpan.FromMilliseconds(1000f/targetFramerate) - logicTimer.Elapsed;
+                // new ManualResetEvent(false).WaitOne(timeToWait); // THIS BLOCKS THE THREAD
+                AccurateWait(timeToWait); // THIS BUSY-BLOCKS THE THREAD
+
+                if (tick % targetFramerate == 0)
+                {
+                    var elapsed1s = ((float)averageTimer.ElapsedMilliseconds / targetFramerate ).ToString();
+                    engine.WriteText(new Point(0, 0), $"{elapsed1s}{new string(' ', Console.BufferWidth - elapsed1s.Length)}", 15); // to clear 2nd digit of prev frame
+                }
+                frameTimer.Stop();
+                var elapsedFrame = frameTimer.ElapsedMilliseconds.ToString();
+                engine.WriteText(new Point(0, 1), $"{elapsedFrame}{new string(' ',  Console.BufferWidth - elapsedFrame.Length)}", 15); // to clear 2nd digit of prev frame
+                engine.DisplayBuffer(); // THIS LINE ALONE TAKES 30-50 MS (at least in debug)
+
+                if (tick % targetFramerate == 0) // reset timer every second
+                    averageTimer.Restart();
+                
                 tick++;
 
                 // Console.ReadLine();
@@ -173,19 +231,34 @@ namespace Asteroids
             Console.ReadLine();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static PointInt GetPositionToMoveTo(int x, int y, Vector2 velocity, Vector2[,] realPositions, Vector2[,] newRealPositions)
+        private static bool OutsideOfGrid(PointInt position, int width, int height)
         {
+            return position.X < 0 || position.X >= width || position.Y < 0 ||
+                   position.Y >= height;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static PointInt ApplyVelocity(Vector2 realPosition, Vector2 velocity, Vector2[,] newRealPositions, RotationGroup rotationGroup)
+        {
+            var currentPositionInt = new PointInt((int)Math.Round(realPosition.X), (int)Math.Round(realPosition.Y));
+            var newRealPosition = realPosition;
+
             var direction = velocity.Normalize(); // for now treating velocity as if it has magnitude 1
-            var newRealPosition = realPositions[y, x] + direction;
+            newRealPosition += direction;
             var newPosition = new PointInt((int)Math.Round(newRealPosition.X), (int)Math.Round(newRealPosition.Y));
             
             if (newPosition.Y < newRealPositions.GetLength(0) && 
                 newPosition.X < newRealPositions.GetLength(1) &&
                 newPosition.Y >= 0 && newPosition.X >= 0) // if out of bounds it will be detected and destroyed later
             {
+                // if (newPosition.X == 125 && newPosition.Y == 115 )
+                //     throw new Exception();
+                
                 newRealPositions[newPosition.Y, newPosition.X] = newRealPosition;
             }
+
+            if (newPosition.Y == -1)
+                throw new Exception();
 
             return newPosition;
         }
@@ -194,7 +267,7 @@ namespace Asteroids
         private static bool PixelExists(PointInt position, bool[,] pixels) => pixels[position.Y, position.X];
 
         private static void Render(int height, int width, bool[,] pixels, Vector2[,] velocities, StringBuilder view, bool[,] prevPixels, ConsoleEngine engine)
-        {
+        { 
             // Console.Clear();
             // view.Clear();
             for (int y = 0; y < height; y++)
@@ -250,7 +323,7 @@ namespace Asteroids
             return distance <= radius + 0.5f;
         }
 
-        private static void Clear(bool[,] array, Vector2[,] array2, Vector2[,] array3)
+        private static void Clear(bool[,] array, Vector2[,] array2, Vector2[,] array3, int[,] array4)
         {
             for (int y = 0; y < array.GetLength(0); y++)
             {
@@ -259,16 +332,22 @@ namespace Asteroids
                     array[y, x] = false;
                     array2[y, x] = Vector2.Zero;
                     array3[y, x] = Vector2.Zero;
+                    array4[y, x] = 0;
                 }
             }
         }
         
-        private static void AccurateWait(int ms)
+        private static void AccurateWait(TimeSpan timeToWait)
         {
             var sw = Stopwatch.StartNew();
 
-            while (sw.ElapsedMilliseconds < ms)
-                ;
+            while (sw.Elapsed < timeToWait)
+            {
+                if (timeToWait - sw.Elapsed > TimeSpan.FromMilliseconds(6))
+                {
+                    Thread.Sleep(0);
+                }
+            }
         }
         
 
@@ -276,7 +355,7 @@ namespace Asteroids
 
 
     [DebuggerDisplay("({X},{Y})")]
-    struct PointInt
+    record struct PointInt
     {
         public int X;
         public int Y;
@@ -326,4 +405,43 @@ namespace Asteroids
             Radius = radius;
         }
     }
-}
+
+    record struct RotationGroup
+    {
+        public Vector2 Pivot;
+        public float AngularVelocity;
+
+        public RotationGroup(Vector2 pivot, float angularVelocity)
+        {
+            Pivot = pivot;
+            AngularVelocity = angularVelocity;
+        }
+        
+        // #region Equality
+        // public bool Equals(RotationGroup other)
+        // {
+        //     return Pivot.Equals(other.Pivot) && AngularVelocity.Equals(other.AngularVelocity);
+        // }
+        //
+        // public override bool Equals(object obj)
+        // {
+        //     return obj is RotationGroup other && Equals(other);
+        // }
+        //
+        // public override int GetHashCode()
+        // {
+        //     return HashCode.Combine(Pivot, AngularVelocity);
+        // }
+        //
+        // public static bool operator ==(RotationGroup left, RotationGroup right)
+        // {
+        //     return left.Equals(right);
+        // }
+        //
+        // public static bool operator !=(RotationGroup left, RotationGroup right)
+        // {
+        //     return !left.Equals(right);
+        // }
+        // #endregion
+    }
+    }
