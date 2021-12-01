@@ -12,6 +12,8 @@ using Point = ConsoleGameEngine.Point;
 
 namespace Asteroids
 {
+    // IMPORTANT: for this mess to work, you need 1080p display resolution and command line's default font size set to 5. 
+    // If you don't have a square monospace font installed & configured, everything will be stretched. (I'm using Px437 IBM EGA 8x8)
     class Program
     {
         static void Main(string[] args)
@@ -69,7 +71,7 @@ namespace Asteroids
 
             // Console.BackgroundColor = ConsoleColor.Black;
             // Console.Clear(); // to fill with black
-            Render(height, width, pixels, velocities, view, newPixels, engine);
+            Render(height, width, pixels, newPixels, engine);
             engine.DisplayBuffer();
             
             // set up initial velocities
@@ -155,7 +157,7 @@ namespace Asteroids
                 }
                 
                 // render
-                Render(height, width, newPixels, newVelocities, view, pixels, engine);
+                Render(height, width, newPixels, pixels, engine);
                 pixels = newPixels.Clone() as bool[,];
                 velocities = newVelocities.Clone() as Vector2[,];
                 realPositions = newRealPositions.Clone() as Vector2[,];
@@ -213,10 +215,8 @@ namespace Asteroids
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool PixelExists(PointInt position, bool[,] pixels) => pixels[position.Y, position.X];
 
-        private static void Render(int height, int width, bool[,] pixels, Vector2[,] velocities, StringBuilder view, bool[,] prevPixels, ConsoleEngine engine)
-        { 
-            // Console.Clear();
-            // view.Clear();
+        private static void Render(int height, int width, bool[,] pixels, bool[,] prevPixels, ConsoleEngine engine)
+        {
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
@@ -225,39 +225,10 @@ namespace Asteroids
                     {
                         continue;
                     }
-
-                    // var character = pixels[y, x] ? ConsoleCharacter.Full : ConsoleCharacter.Null; //'█' : ' ';
+                    
                     var color = pixels[y, x] ? 15 : 0;
-                    // engine.SetPixel(new Point(x, y), 15, character); // 0 is black, 15 is white
+                    // 0 is black, 15 is white
                     engine.SetPixel(new Point(x, y), 0, color, ' ');
-                    // var velocity = velocities[y, x];
-                    // if (pixels[y, x])
-                    // {
-                    //     var character = velocity switch // console font doesn't support some of those characters unfortunately
-                    //     {
-                    //         // _ => '█',
-                    //         (>0f, >0f) => '↘',
-                    //         (>0f, 0f) => '→',
-                    //         (>0f, <0f) => '↗',
-                    //         (0f, <0f) => '↑',
-                    //         (0f, 0f) => '█',
-                    //         (0f, >0f) => '↓',
-                    //         (<0f, <0f) => '↖',
-                    //         (<0f, 0f) => '←',
-                    //         (<0f, >0f) => '↙',
-                    //     };
-                    //     // if (!pixels[y, x] && character == '█') // hack to visualize velocity for empty pixels
-                    //     // {
-                    //     //     character = ' ';
-                    //     // }
-                    //
-                    //     character = '█';
-                    //     view.Append(character);
-                    // }
-                    // else
-                    // {
-                    //     view.Append(' ');
-                    // }
 
                 }
             }
