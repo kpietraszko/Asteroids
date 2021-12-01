@@ -16,7 +16,7 @@ namespace Asteroids
     {
         static void Main(string[] args)
         {
-            const float targetFramerate = 30f;
+            const float targetFramerate = 60f;
             Console.BackgroundColor = ConsoleColor.Black;
             // spout is 180 x 360
             var width = 320;
@@ -28,23 +28,15 @@ namespace Asteroids
             var newVelocities = new Vector2[height, width];
             var realPositions = new Vector2[height, width];
             var newRealPositions = new Vector2[height, width];
-            var rotationGroupAssignements = new int[height, width];
-            var newRotationGroupAssignements = new int[height, width];
             var testPlanetCenter = new PointInt(70*2, 50*2);
 
             var asteroids = new List<Asteroid>()
             {
-                /*new (new PointInt(20 * 2, 12 * 2), 7 * 2),
+                new (new PointInt(20 * 2, 12 * 2), 7 * 2),
                 new (new PointInt(15 * 2, 80 * 2), 5 * 2),
-                new (new PointInt(20 * 2, 46 * 2), 10 * 2)*/
+                new (new PointInt(20 * 2, 46 * 2), 10 * 2)
             };
 
-            var rotationGroups = new List<RotationGroup>()
-            {
-                default, // index 0 is default which shouldn't rotate
-                new(new Vector2(testPlanetCenter.X, testPlanetCenter.Y), 0.05f) // for planet
-            };
-            
             // Console.SetWindowSize(width, height);
             // Console.SetBufferSize(width, height);
 
@@ -60,11 +52,9 @@ namespace Asteroids
                     realPositions[y, x] = new Vector2(x, y);
                     // test planet
                     var radius = 20 * 2;
-                    if (IsPointInCircle(new PointInt(x, y), testPlanetCenter, radius) ||
-                        (x < testPlanetCenter.X + 3 && x > testPlanetCenter.X - 3 && y > testPlanetCenter.Y - radius - 6 && y < testPlanetCenter.Y))
+                    if (IsPointInCircle(new PointInt(x, y), testPlanetCenter, radius))
                     {
                         pixels[y, x] = true;
-                        rotationGroupAssignements[y, x] = 1;
                     }
                     
                     foreach (var asteroid in asteroids)
@@ -113,7 +103,7 @@ namespace Asteroids
                 frameTimer.Reset();
                 // Console.ReadLine(); // waits for enter to go to next frame
                 frameTimer.Start();
-                Clear(newPixels, newVelocities, newRealPositions, newRotationGroupAssignements);
+                Clear(newPixels, newVelocities, newRealPositions);
                 var pixelsThatNoPixelRotatesTo = 0;
                 for (int y = 0; y < height; y++)
                 {
@@ -124,41 +114,7 @@ namespace Asteroids
                             continue;
                         }
                         
-                        // rotation tips: https://stackoverflow.com/questions/4764516/help-with-rotating-xy-pixel-coordinates-unsure-about-my-function
-                        // find the pixel that rotates to this pixel, by iterating over all rotationGroups, and rotating in minus angle
-                        // unfortunately this loop needs to be moved before this velocity loop, because  
                         var foundPixelThatRotatesToThisPixel = false;
-                        for (int rotationGroupIdx = 1; rotationGroupIdx < rotationGroups.Count; rotationGroupIdx++)
-                        {
-                            var rotationGroup = rotationGroups[rotationGroupIdx];
-                            if (realPositions[y, x] != rotationGroup.Pivot)
-                            {
-                                var posRelativeToPivot =  realPositions[y, x] - rotationGroup.Pivot;
-                                var r = posRelativeToPivot.Length();
-                                var angle = Math.Atan2(posRelativeToPivot.Y, posRelativeToPivot.X);
-                                angle += -rotationGroup.AngularVelocity; // rotate in minus angle because I'm looking for pixel that rotates to current pixel
-                                // Transform back from polar coordinates to cartesian 
-                                var rotatedPosRelativeToPivot = new Vector2(r * (float)Math.Cos(angle), r * (float)Math.Sin(angle));
-                                var rotatedRealPosition = rotatedPosRelativeToPivot + rotationGroup.Pivot;
-                                var pixelThatRotatesToCurrent = new PointInt((int)Math.Round(rotatedRealPosition.X), (int)Math.Round(rotatedRealPosition.Y));
-                                
-                                if (pixelThatRotatesToCurrent.Y >= newRealPositions.GetLength(0) || 
-                                    pixelThatRotatesToCurrent.X >= newRealPositions.GetLength(1) ||
-                                    pixelThatRotatesToCurrent.Y < 0 || pixelThatRotatesToCurrent.X < 0) // can't be it because out of bounds
-                                {
-                                    continue;
-                                }
-
-                                if (rotationGroups[rotationGroupAssignements[pixelThatRotatesToCurrent.Y, pixelThatRotatesToCurrent.X]] == rotationGroup)
-                                {
-                                    // pixel that rotates to current pixel is in this rotation group
-                                    realPositions[y, x] = realPositions[pixelThatRotatesToCurrent.Y, pixelThatRotatesToCurrent.X];
-                                    velocities[y, x] = velocities[pixelThatRotatesToCurrent.Y, pixelThatRotatesToCurrent.X];
-                                    // throw new Exception();
-                                    foundPixelThatRotatesToThisPixel = true;
-                                }
-                            }
-                        }
 
                         if (!foundPixelThatRotatesToThisPixel)
                             pixelsThatNoPixelRotatesTo++;
@@ -167,34 +123,32 @@ namespace Asteroids
                         var velocity = new Vector2(velocities[y, x].X, velocities[y, x].Y);
                         velocities[y, x] = new Vector2(0f, 0f);
 
-                        var rotationGroupIndex = rotationGroupAssignements[y, x];
-                        var positionToMoveTo = ApplyVelocity(realPositions[y, x], velocity, newRealPositions, rotationGroups[rotationGroupIndex]);
+                        var positionToMoveTo = ApplyVelocity(realPositions[y, x], velocity, newRealPositions);
 
-                        // if (OutsideOfGrid(positionToMoveTo, width, height))
-                        // {
-                        //     // destroys pixels that left the grid
-                        //     newPixels[y, x] = false;
-                        //     continue;
-                        // }
+                        if (OutsideOfGrid(positionToMoveTo, width, height))
+                        {
+                            // destroys pixels that left the grid
+                            newPixels[y, x] = false;
+                            continue;
+                        }
                         
-                        if (newPixels[positionToMoveTo.Y, positionToMoveTo.X] &&
-                            rotationGroupAssignements[positionToMoveTo.Y, positionToMoveTo.X] == rotationGroupIndex)
+                        if (newPixels[positionToMoveTo.Y, positionToMoveTo.X])
                         {
                             // target pixel already occupied by same rotation group pixel
                             positionToMoveTo = new PointInt(x, y);
                         }
 
-                        /*if (newPixels[positionToMoveTo.Y, positionToMoveTo.X]) 
+                        if (newPixels[positionToMoveTo.Y, positionToMoveTo.X]) 
                         {
                             // collision, destroy both
                             newPixels[positionToMoveTo.Y, positionToMoveTo.X] = false;
                             newVelocities[positionToMoveTo.Y, positionToMoveTo.X] = new Vector2(0f, 0f);
                         }
                         else
-                        {*/
+                        {
                             newPixels[positionToMoveTo.Y, positionToMoveTo.X] = true;
                             newVelocities[positionToMoveTo.Y, positionToMoveTo.X] = velocity;
-                        // }
+                        }
                     }
 
                     tick++;
@@ -207,8 +161,8 @@ namespace Asteroids
                 realPositions = newRealPositions.Clone() as Vector2[,];
 
                 var timeToWait = TimeSpan.FromMilliseconds(1000f/targetFramerate) - logicTimer.Elapsed;
-                // new ManualResetEvent(false).WaitOne(timeToWait); // THIS BLOCKS THE THREAD
-                AccurateWait(timeToWait); // THIS BUSY-BLOCKS THE THREAD
+                new ManualResetEvent(false).WaitOne(timeToWait); // THIS BLOCKS THE THREAD
+                // AccurateWait(timeToWait); // THIS BUSY-BLOCKS THE THREAD
 
                 if (tick % targetFramerate == 0)
                 {
@@ -238,9 +192,8 @@ namespace Asteroids
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static PointInt ApplyVelocity(Vector2 realPosition, Vector2 velocity, Vector2[,] newRealPositions, RotationGroup rotationGroup)
+        private static PointInt ApplyVelocity(Vector2 realPosition, Vector2 velocity, Vector2[,] newRealPositions)
         {
-            var currentPositionInt = new PointInt((int)Math.Round(realPosition.X), (int)Math.Round(realPosition.Y));
             var newRealPosition = realPosition;
 
             var direction = velocity.Normalize(); // for now treating velocity as if it has magnitude 1
@@ -251,14 +204,8 @@ namespace Asteroids
                 newPosition.X < newRealPositions.GetLength(1) &&
                 newPosition.Y >= 0 && newPosition.X >= 0) // if out of bounds it will be detected and destroyed later
             {
-                // if (newPosition.X == 125 && newPosition.Y == 115 )
-                //     throw new Exception();
-                
                 newRealPositions[newPosition.Y, newPosition.X] = newRealPosition;
             }
-
-            if (newPosition.Y == -1)
-                throw new Exception();
 
             return newPosition;
         }
@@ -323,7 +270,7 @@ namespace Asteroids
             return distance <= radius + 0.5f;
         }
 
-        private static void Clear(bool[,] array, Vector2[,] array2, Vector2[,] array3, int[,] array4)
+        private static void Clear(bool[,] array, Vector2[,] array2, Vector2[,] array3)
         {
             for (int y = 0; y < array.GetLength(0); y++)
             {
@@ -332,7 +279,6 @@ namespace Asteroids
                     array[y, x] = false;
                     array2[y, x] = Vector2.Zero;
                     array3[y, x] = Vector2.Zero;
-                    array4[y, x] = 0;
                 }
             }
         }
